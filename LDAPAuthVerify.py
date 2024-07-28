@@ -36,25 +36,30 @@ def ldap_verify(ldap_base_dn, ldap_username, ldap_password, ldap_group):
     # LDAP Bind DN for Authentik login
     ldap_bind_dn = f"cn={ldap_username},ou=users,{ldap_base_dn}"
 
-    # Initialize the LDAP connection
-    conn = ldap.initialize(ldap_server)
-    conn.set_option(ldap.OPT_REFERRALS, 0)
-    conn.simple_bind_s(ldap_bind_dn, ldap_password)
+    try:
+        # Initialize the LDAP connection
+        conn = ldap.initialize(ldap_server)
+        conn.set_option(ldap.OPT_REFERRALS, 0)
+        conn.simple_bind_s(ldap_bind_dn, ldap_password)
 
-    # Get the actual username if ldap_username is an email address
-    if is_ldap_username_email(ldap_username):
-        actual_username = get_username_for_email(ldap_base_dn, ldap_username, conn)
-    else:
-        actual_username = ldap_username
+        # Get the actual username if ldap_username is an email address
+        if is_ldap_username_email(ldap_username):
+            actual_username = get_username_for_email(ldap_base_dn, ldap_username, conn)
+        else:
+            actual_username = ldap_username
 
-    # Get LDAP group search result
-    result = search_user_in_group(ldap_base_dn, actual_username, ldap_group, conn)
+        # Get LDAP group search result
+        result = search_user_in_group(ldap_base_dn, actual_username, ldap_group, conn)
 
-    if result:
-        log = f"User {ldap_username} authenticated successfully and found in group {ldap_group}."
-        return {"success": True, "log": log}
-    else:
-        log = f"User {ldap_username} authenticated successfully but not found in group {ldap_group}."
+        if result:
+            log = f"User {ldap_username} authenticated successfully and found in group {ldap_group}."
+            return {"success": True, "log": log}
+        else:
+            log = f"User {ldap_username} authenticated successfully but not found in group {ldap_group}."
+            return {"success": False, "log": log}
+
+    except ldap.INVALID_CREDENTIALS:
+        log = "Invalid credentials"
         return {"success": False, "log": log}
 
 @app.route('/verify', methods=['POST'])
