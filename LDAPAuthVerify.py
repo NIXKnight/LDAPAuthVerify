@@ -79,6 +79,10 @@ def ldap_verify(ldap_base_dn, ldap_username, ldap_password, ldap_group):
         log = "LDAP server is down"
         return {"success": False, "log": log}, 503
 
+    finally:
+        if conn:
+            conn.unbind_s()
+
 @app.route('/verify', methods=['POST'])
 def verify():
     data = request.json
