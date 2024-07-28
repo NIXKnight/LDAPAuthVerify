@@ -23,6 +23,14 @@ def get_username_for_email(ldap_base_dn, email, conn):
         return cn
     return None
 
+def group_exists(ldap_base_dn, ldap_group, conn):
+    search_filter = f"(cn={ldap_group})"
+    result = conn.search_s(f"ou=groups,{ldap_base_dn}", ldap.SCOPE_SUBTREE, search_filter, ['cn'])
+    if result:
+        return True
+    else:
+        return False
+
 def search_user_in_group(ldap_base_dn, ldap_username, ldap_group, conn):
     # LDAP group DN for Authentik LDAP search
     ldap_group_dn = f"cn={ldap_group},ou=groups,{ldap_base_dn}"
@@ -41,6 +49,11 @@ def ldap_verify(ldap_base_dn, ldap_username, ldap_password, ldap_group):
         conn = ldap.initialize(ldap_server)
         conn.set_option(ldap.OPT_REFERRALS, 0)
         conn.simple_bind_s(ldap_bind_dn, ldap_password)
+
+        # Verify if the group exists
+        if not group_exists(ldap_base_dn, ldap_group, conn):
+            log = f"User {ldap_username} authenticated successfully and group {ldap_group} does not exist."
+            return {"success": False, "log": log}
 
         # Get the actual username if ldap_username is an email address
         if is_ldap_username_email(ldap_username):
