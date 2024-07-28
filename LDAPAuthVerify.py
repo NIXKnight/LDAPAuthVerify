@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 import ldap
 from os import getenv
 import re
@@ -53,7 +53,7 @@ def ldap_verify(ldap_base_dn, ldap_username, ldap_password, ldap_group):
         # Verify if the group exists
         if not group_exists(ldap_base_dn, ldap_group, conn):
             log = f"User {ldap_username} authenticated successfully and group {ldap_group} does not exist."
-            return {"success": False, "log": log}
+            return {"success": False, "log": log}, 404
 
         # Get the actual username if ldap_username is an email address
         if is_ldap_username_email(ldap_username):
@@ -66,14 +66,14 @@ def ldap_verify(ldap_base_dn, ldap_username, ldap_password, ldap_group):
 
         if result:
             log = f"User {ldap_username} authenticated successfully and found in group {ldap_group}."
-            return {"success": True, "log": log}
+            return {"success": False, "log": log}, 200
         else:
             log = f"User {ldap_username} authenticated successfully but not found in group {ldap_group}."
-            return {"success": False, "log": log}
+            return {"success": False, "log": log}, 403
 
     except ldap.INVALID_CREDENTIALS:
         log = "Invalid credentials"
-        return {"success": False, "log": log}
+        return {"success": False, "log": log}, 401
 
 @app.route('/verify', methods=['POST'])
 def verify():
@@ -83,5 +83,5 @@ def verify():
     ldap_password = data.get('ldap_password')
     ldap_group = data.get('ldap_group')
 
-    result = ldap_verify(ldap_base_dn, ldap_username, ldap_password, ldap_group)
-    return jsonify(result)
+    result, response_code = ldap_verify(ldap_base_dn, ldap_username, ldap_password, ldap_group)
+    return make_response(jsonify(result), response_code)
