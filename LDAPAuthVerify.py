@@ -5,6 +5,7 @@ from os import getenv
 import re
 
 app = Flask(__name__)
+app.config['DEBUG'] = getenv('DEBUG', False)
 
 # Set up logging
 logging.basicConfig(
@@ -83,7 +84,7 @@ def ldap_verify(ldap_base_dn, ldap_username, ldap_password, ldap_group):
         if result:
             log = f"User {ldap_username} authenticated successfully and found in group {ldap_group}"
             logger.info(log)
-            return {"success": False, "log": log}, 200
+            return {"success": True, "log": log}, 200
         else:
             log = f"User {ldap_username} authenticated successfully but not found in group {ldap_group}"
             logger.warn(log)
